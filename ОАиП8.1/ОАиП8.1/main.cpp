@@ -14,6 +14,8 @@ struct CartesianPoint
 	std::vector<float> x;
 	std::string name;
 
+	CartesianPoint() : CartesianPoint(1, {0.f}, NAME_PLACEHOLDER) {}
+
 	CartesianPoint(int dim, std::vector<float> coordinates, const std::string& pointName)
 	{
 		dimension = dim;
@@ -29,6 +31,13 @@ struct CartesianPoint
 
 	CartesianPoint(int dim, std::vector<float> coordinates)
 		: CartesianPoint(dim, coordinates, NAME_PLACEHOLDER) {}
+
+	void operator=(const CartesianPoint& other)
+	{
+		dimension = other.dimension;
+		x = other.x;
+		name = other.name;
+	}
 };
 
 struct PolarPoint
