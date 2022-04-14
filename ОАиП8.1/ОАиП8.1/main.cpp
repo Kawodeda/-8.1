@@ -3,20 +3,59 @@
 
 #include <iostream>
 #include <iomanip>
-#include <math.h>
+#include <cmath>
 #include <string>
 #include <vector>
+#include <limits>
+#include <stdexcept>
+
+class Cartesian
+{
+private:
+	static const size_t MIN_DIMENSION = 1;
+	static const size_t MAX_DIMENSION = 1024;
+	inline static const std::string NAME_PLACEHOLDER = "untitled";
+	inline 
+	size_t m_dimension;
+	std::vector<float> m_x;
+	std::string m_name;
+
+public:
+	Cartesian(size_t dimension, const std::vector<float> x, const std::string& name)
+	{
+		if (dimension < MIN_DIMENSION || dimension > MAX_DIMENSION)
+		{
+			throw std::out_of_range("dimension is out of range");
+		}
+		if (dimension != x.size())
+		{
+			throw std::logic_error("dimension and number of components must be the same");
+		}
+
+		m_name = name;
+	}
+
+	const std::string& GetNamePlaceholder()
+	{
+		return NAME_PLACEHOLDER;
+	}
+
+	const std::string& GetName()
+	{
+		return m_name;
+	}
+};
 
 struct CartesianPoint
 {
 	const std::string NAME_PLACEHOLDER = "untitled";
-	int dimension;
+	size_t dimension;
 	std::vector<float> x;
 	std::string name;
 
 	CartesianPoint() : CartesianPoint(1, {0.f}, NAME_PLACEHOLDER) {}
 
-	CartesianPoint(int dim, std::vector<float> coordinates, const std::string& pointName)
+	CartesianPoint(size_t dim, std::vector<float> coordinates, const std::string& pointName)
 	{
 		dimension = dim;
 		x = coordinates;
@@ -29,7 +68,7 @@ struct CartesianPoint
 	CartesianPoint(std::vector<float> coordinates, const std::string& pointName)
 		: CartesianPoint(coordinates.size(), coordinates, pointName) {}
 
-	CartesianPoint(int dim, std::vector<float> coordinates)
+	CartesianPoint(size_t dim, std::vector<float> coordinates)
 		: CartesianPoint(dim, coordinates, NAME_PLACEHOLDER) {}
 
 	void operator=(const CartesianPoint& other)
@@ -43,12 +82,12 @@ struct CartesianPoint
 struct PolarPoint
 {
 	const std::string NAME_PLACEHOLDER = "untitled";
-	int dimension;
+	size_t dimension;
 	float r;
 	std::vector<float> phi;
 	std::string name;
 
-	PolarPoint(int dim, float distance, std::vector<float> angles, const std::string& pointName)
+	PolarPoint(size_t dim, float distance, std::vector<float> angles, const std::string& pointName)
 	{
 		dimension = dim;
 		r = distance;
@@ -62,7 +101,7 @@ struct PolarPoint
 	PolarPoint(float distance, std::vector<float> angles)
 		: PolarPoint(angles.size() + 1, distance, angles, NAME_PLACEHOLDER) {}
 
-	PolarPoint(int dim, float distance, std::vector<float> angles)
+	PolarPoint(size_t dim, float distance, std::vector<float> angles)
 		: PolarPoint(dim, distance, angles, NAME_PLACEHOLDER) {}
 };
 
@@ -71,7 +110,7 @@ void PrintPoint(const CartesianPoint& point)
 	const int FLOAT_PRECISION = 4;
 
 	std::cout << std::endl << point.name << " (" << point.dimension << "-dim):" << std::endl;
-	for (int i = 0; i < point.x.size(); ++i)
+	for (size_t i = 0; i < point.x.size(); ++i)
 	{
 		std::cout << "  x" << i << " = "
 			<< std::setprecision(FLOAT_PRECISION)
@@ -86,7 +125,7 @@ void PrintPoint(const PolarPoint& point)
 	std::cout << std::endl << point.name << " (" << point.dimension << "-dim):" << std::endl;
 	std::cout << "  r = " << std::setprecision(FLOAT_PRECISION) << point.r << std::endl;
 
-	for (int i = 0; i < point.phi.size(); ++i)
+	for (size_t i = 0; i < point.phi.size(); ++i)
 	{
 		std::cout << "  phi" << i << " = "
 			<< std::setprecision(FLOAT_PRECISION)
@@ -101,12 +140,12 @@ CartesianPoint ScanCartesianPoint()
 	std::cin >> name;
 
 	std::cout << "Enter point's dimension (whole number): ";
-	int n = 0;
+	size_t n = 0;
 	std::cin >> n;
 
 	std::cout << "Enter point's coordinates:" << std::endl;
 	std::vector<float> x(n);
-	for (int i = 0; i < n; ++i)
+	for (size_t i = 0; i < n; ++i)
 	{
 		std::cout << "  x" << i << " = ";
 		std::cin >> x[i];
@@ -118,15 +157,23 @@ CartesianPoint ScanCartesianPoint()
 
 int Sign(float number)
 {
-	if (number > 0)
+	if (std::isnan(number))
 	{
-		return 1;
+		throw std::invalid_argument("recieved NaN value");
 	}
-	else if (number == 0)
+
+	const float eps = 0.00000001f;
+	float diff = fabs(number);
+
+	if (diff <= eps)
 	{
 		return 0;
 	}
-	else if (number < 0)
+	else if (number > 0)
+	{
+		return 1;
+	}
+	else
 	{
 		return -1;
 	}
@@ -136,18 +183,18 @@ float GetAngle(int sign, float cos)
 {
 	float arccos = acos(cos);
 
-	return sign >= 0 ? arccos : (M_PI * 2 - arccos);
+	return (sign >= 0 ? arccos : static_cast<float>(M_PI * 2 - arccos));
 }
 
 PolarPoint CartesianToPolar(const CartesianPoint& point)
 {
 	float r = 0.f;
-	int n = point.dimension - 1;
+	auto n = point.dimension - 1;
 	std::vector<float> phi(n);
 
 	for (int i = 0; i <= n; ++i)
 	{
-		r += pow(point.x[i], 2);
+		r += static_cast<float>(pow(point.x[i], 2));
 	}
 	r = sqrt(r);
 
@@ -159,13 +206,13 @@ PolarPoint CartesianToPolar(const CartesianPoint& point)
 
 			for (int j = i; j < n; ++j)
 			{
-				sumOfSquares += pow(point.x[j], 2);
+				sumOfSquares += static_cast<float>(pow(point.x[j], 2));
 			}
 
 			phi[i] = acos(point.x[i] / sqrt(sumOfSquares));
 		}
 
-		float cos = point.x[n - 1] / sqrt(pow(point.x[n], 2) + pow(point.x[n - 1], 2));
+		float cos = static_cast<float>(point.x[n - 1] / sqrt(pow(point.x[n], 2) + pow(point.x[n - 1], 2)));
 		phi[n - 1] = GetAngle(Sign(point.x[n]), cos);
 	}
 
@@ -176,18 +223,18 @@ PolarPoint CartesianToPolar(const CartesianPoint& point)
 int main()
 {
 	std::cout << "Enter the number of points: ";
-	int numberOfPoints = 0;
+	size_t numberOfPoints = 0;
 	std::cin >> numberOfPoints;
 
 	CartesianPoint* points = new CartesianPoint[numberOfPoints];
 
-	for (int i = 0; i < numberOfPoints; ++i)
+	for (size_t i = 0; i < numberOfPoints; ++i)
 	{
 		points[i] = ScanCartesianPoint();
 	}
 
 	std::cout << std::endl << "Polar points:" << std::endl;
-	for (int i = 0; i < numberOfPoints; ++i)
+	for (size_t i = 0; i < numberOfPoints; ++i)
 	{
 		PrintPoint(CartesianToPolar(points[i]));
 	}
