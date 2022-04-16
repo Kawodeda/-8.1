@@ -15,25 +15,34 @@ private:
 	static const size_t MIN_DIMENSION = 1;
 	static const size_t MAX_DIMENSION = 1024;
 	inline static const std::string NAME_PLACEHOLDER = "untitled";
-	inline 
+	inline static const std::string DIMENSION_OUT_OF_RANGE_MESSAGE = "dimension was out of range";
+	inline static const std::string DIMENSION_MISMATCH_MESSAGE = "dimension and number of components must be the same";
+	inline static const std::string INDEX_OUT_OF_RANGE_MESSAGE = "the index was out of range";
+
 	size_t m_dimension;
 	std::vector<float> m_x;
 	std::string m_name;
 
 public:
-	Cartesian(size_t dimension, const std::vector<float> x, const std::string& name)
+	Cartesian(size_t dimension, const std::vector<float>& x, const std::string& name)
 	{
 		if (dimension < MIN_DIMENSION || dimension > MAX_DIMENSION)
 		{
-			throw std::out_of_range("dimension is out of range");
+			throw std::out_of_range(DIMENSION_OUT_OF_RANGE_MESSAGE);
 		}
 		if (dimension != x.size())
 		{
-			throw std::logic_error("dimension and number of components must be the same");
+			throw std::logic_error(DIMENSION_MISMATCH_MESSAGE);
 		}
 
+		m_dimension = dimension;
+		m_x = x;
 		m_name = name;
 	}
+
+	Cartesian(const std::vector<float>& x, const std::string& name) : Cartesian(x.size(), x, name) {}
+
+	Cartesian(const std::vector<float>& x) : Cartesian(x.size(), x, NAME_PLACEHOLDER) {}
 
 	const std::string& GetNamePlaceholder()
 	{
@@ -43,6 +52,31 @@ public:
 	const std::string& GetName()
 	{
 		return m_name;
+	}
+
+	size_t GetDimension()
+	{
+		return m_dimension;
+	}
+
+	float GetXAt(size_t index)
+	{
+		if (index >= m_x.size() || index < 0)
+		{
+			throw std::out_of_range(INDEX_OUT_OF_RANGE_MESSAGE);
+		}
+
+		return m_x[index];
+	}
+
+	void SetXAt(size_t index, float value)
+	{
+		if (index >= m_x.size() || index < 0)
+		{
+			throw std::out_of_range(INDEX_OUT_OF_RANGE_MESSAGE);
+		}
+
+		m_x[index] = value;
 	}
 };
 
