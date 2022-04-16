@@ -91,6 +91,10 @@ CartesianPoint CartesianPoint::Scan()
 	std::cout << "Enter point's dimension (whole number): ";
 	size_t n = 0;
 	std::cin >> n;
+	if (n < MIN_DIMENSION || n > MAX_DIMENSION)
+	{
+		throw std::out_of_range(DIMENSION_OUT_OF_RANGE_MESSAGE);
+	}
 
 	std::cout << "Enter point's coordinates:" << std::endl;
 	std::vector<float> x(n);

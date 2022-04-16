@@ -141,6 +141,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MathUtil.cpp" />
+    <ClCompile Include="Points.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MathUtil.h" />
+    <ClInclude Include="Points.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
