@@ -9,7 +9,7 @@
 #include <limits>
 #include <stdexcept>
 
-class Cartesian
+class CartesianPoint
 {
 private:
 	static const size_t MIN_DIMENSION = 1;
@@ -24,7 +24,7 @@ private:
 	std::string m_name;
 
 public:
-	Cartesian(size_t dimension, const std::vector<float>& x, const std::string& name)
+	CartesianPoint(size_t dimension, const std::vector<float>& x, const std::string& name)
 	{
 		if (dimension < MIN_DIMENSION || dimension > MAX_DIMENSION)
 		{
@@ -40,9 +40,11 @@ public:
 		m_name = name;
 	}
 
-	Cartesian(const std::vector<float>& x, const std::string& name) : Cartesian(x.size(), x, name) {}
+	CartesianPoint(const std::vector<float>& x, const std::string& name) : CartesianPoint(x.size(), x, name) {}
 
-	Cartesian(const std::vector<float>& x) : Cartesian(x.size(), x, NAME_PLACEHOLDER) {}
+	CartesianPoint(const std::vector<float>& x) : CartesianPoint(x.size(), x, NAME_PLACEHOLDER) {}
+
+	CartesianPoint() : CartesianPoint(1, {0.f}, NAME_PLACEHOLDER) {}
 
 	const std::string& GetNamePlaceholder()
 	{
@@ -78,116 +80,129 @@ public:
 
 		m_x[index] = value;
 	}
+
+	void Print()
+	{
+		const int FLOAT_PRECISION = 4;
+
+		std::cout << std::endl << m_name << " (" << m_dimension << "-dim):" << std::endl;
+		for (size_t i = 0; i < m_x.size(); ++i)
+		{
+			std::cout << "  x" << i << " = "
+				<< std::setprecision(FLOAT_PRECISION)
+				<< m_x[i] << std::endl;
+		}
+	}
+
+	static CartesianPoint Scan()
+	{
+		std::cout << std::endl << "Enter point's name: ";
+		std::string name;
+		std::cin >> name;
+
+		std::cout << "Enter point's dimension (whole number): ";
+		size_t n = 0;
+		std::cin >> n;
+
+		std::cout << "Enter point's coordinates:" << std::endl;
+		std::vector<float> x(n);
+		for (size_t i = 0; i < n; ++i)
+		{
+			std::cout << "  x" << i << " = ";
+			std::cin >> x[i];
+		}
+
+		CartesianPoint point(n, x, name);
+		return point;
+	}
+
+	PolarPoint ToPolarPoint()
+	{
+		float r = 0.f;
+		auto n = m_dimension - 1;
+		std::vector<float> phi(n);
+
+		for (int i = 0; i <= n; ++i)
+		{
+			r += static_cast<float>(pow(m_x[i], 2));
+		}
+		r = sqrt(r);
+
+		if (n > 0)
+		{
+			for (int i = 0; i < n - 1; ++i)
+			{
+				float sumOfSquares = 0.f;
+
+				for (int j = i; j < n; ++j)
+				{
+					sumOfSquares += static_cast<float>(pow(m_x[j], 2));
+				}
+
+				phi[i] = acos(m_x[i] / sqrt(sumOfSquares));
+			}
+
+			float cos = static_cast<float>(m_x[n - 1] / sqrt(pow(m_x[n], 2) + pow(m_x[n - 1], 2)));
+			phi[n - 1] = GetAngle(Sign(m_x[n]), cos);
+		}
+
+		PolarPoint result(r, phi, m_name);
+		return result;
+	}
 };
 
-struct CartesianPoint
+class PolarPoint
 {
-	const std::string NAME_PLACEHOLDER = "untitled";
-	size_t dimension;
-	std::vector<float> x;
-	std::string name;
+private:
+	static const size_t MIN_DIMENSION = 1;
+	static const size_t MAX_DIMENSION = 1024;
+	inline static const std::string NAME_PLACEHOLDER = "untitled";
+	inline static const std::string DIMENSION_OUT_OF_RANGE_MESSAGE = "dimension was out of range";
+	inline static const std::string DIMENSION_MISMATCH_MESSAGE = "number of angles must be one less then dimension";
+	inline static const std::string INDEX_OUT_OF_RANGE_MESSAGE = "the index was out of range";
 
-	CartesianPoint() : CartesianPoint(1, {0.f}, NAME_PLACEHOLDER) {}
+	size_t m_dimension;
+	float m_r;
+	std::vector<float> m_phi;
+	std::string m_name;
 
-	CartesianPoint(size_t dim, std::vector<float> coordinates, const std::string& pointName)
+public:
+	PolarPoint(size_t dimension, float r, const std::vector<float>& phi, const std::string& name)
 	{
-		dimension = dim;
-		x = coordinates;
-		name = pointName;
+		if (dimension < MIN_DIMENSION || dimension > MAX_DIMENSION)
+		{
+			throw std::out_of_range(DIMENSION_OUT_OF_RANGE_MESSAGE);
+		}
+		if (dimension - 1 != phi.size())
+		{
+			throw std::logic_error(DIMENSION_MISMATCH_MESSAGE);
+		}
+
+		m_dimension = dimension;
+		m_r = r;
+		m_phi = phi;
+		m_name = name;
 	}
 
-	CartesianPoint(std::vector<float> coordinates)
-		: CartesianPoint(coordinates.size(), coordinates, NAME_PLACEHOLDER) {}
+	PolarPoint(float r, const std::vector<float>& phi, const std::string& name) : PolarPoint(phi.size() + 1, r, phi, name) {}
 
-	CartesianPoint(std::vector<float> coordinates, const std::string& pointName)
-		: CartesianPoint(coordinates.size(), coordinates, pointName) {}
+	PolarPoint(float r, const std::vector<float>& phi) : PolarPoint(phi.size() + 1, r, phi, NAME_PLACEHOLDER) {}
 
-	CartesianPoint(size_t dim, std::vector<float> coordinates)
-		: CartesianPoint(dim, coordinates, NAME_PLACEHOLDER) {}
-
-	void operator=(const CartesianPoint& other)
+	void Print()
 	{
-		dimension = other.dimension;
-		x = other.x;
-		name = other.name;
+		const int FLOAT_PRECISION = 4;
+
+		std::cout << std::endl << m_name << " (" << m_dimension << "-dim):" << std::endl;
+		std::cout << "  r = " << std::setprecision(FLOAT_PRECISION) << m_r << std::endl;
+
+		for (size_t i = 0; i < m_phi.size(); ++i)
+		{
+			std::cout << "  phi" << i << " = "
+				<< std::setprecision(FLOAT_PRECISION)
+				<< m_phi[i] << std::endl;
+		}
 	}
 };
-
-struct PolarPoint
-{
-	const std::string NAME_PLACEHOLDER = "untitled";
-	size_t dimension;
-	float r;
-	std::vector<float> phi;
-	std::string name;
-
-	PolarPoint(size_t dim, float distance, std::vector<float> angles, const std::string& pointName)
-	{
-		dimension = dim;
-		r = distance;
-		phi = angles;
-		name = pointName;
-	}
-
-	PolarPoint(float distance, std::vector<float> angles, const std::string& pointName)
-		: PolarPoint(angles.size() + 1, distance, angles, pointName) {}
-
-	PolarPoint(float distance, std::vector<float> angles)
-		: PolarPoint(angles.size() + 1, distance, angles, NAME_PLACEHOLDER) {}
-
-	PolarPoint(size_t dim, float distance, std::vector<float> angles)
-		: PolarPoint(dim, distance, angles, NAME_PLACEHOLDER) {}
-};
-
-void PrintPoint(const CartesianPoint& point)
-{
-	const int FLOAT_PRECISION = 4;
-
-	std::cout << std::endl << point.name << " (" << point.dimension << "-dim):" << std::endl;
-	for (size_t i = 0; i < point.x.size(); ++i)
-	{
-		std::cout << "  x" << i << " = "
-			<< std::setprecision(FLOAT_PRECISION)
-			<< point.x[i] << std::endl;
-	}
-}
-
-void PrintPoint(const PolarPoint& point)
-{
-	const int FLOAT_PRECISION = 4;
-
-	std::cout << std::endl << point.name << " (" << point.dimension << "-dim):" << std::endl;
-	std::cout << "  r = " << std::setprecision(FLOAT_PRECISION) << point.r << std::endl;
-
-	for (size_t i = 0; i < point.phi.size(); ++i)
-	{
-		std::cout << "  phi" << i << " = "
-			<< std::setprecision(FLOAT_PRECISION)
-			<< point.phi[i] << std::endl;
-	}
-}
-
-CartesianPoint ScanCartesianPoint()
-{
-	std::cout << std::endl << "Enter point's name: ";
-	std::string name;
-	std::cin >> name;
-
-	std::cout << "Enter point's dimension (whole number): ";
-	size_t n = 0;
-	std::cin >> n;
-
-	std::cout << "Enter point's coordinates:" << std::endl;
-	std::vector<float> x(n);
-	for (size_t i = 0; i < n; ++i)
-	{
-		std::cout << "  x" << i << " = ";
-		std::cin >> x[i];
-	}
-
-	CartesianPoint point(n, x, name);
-	return point;
-}
 
 int Sign(float number)
 {
@@ -220,40 +235,6 @@ float GetAngle(int sign, float cos)
 	return (sign >= 0 ? arccos : static_cast<float>(M_PI * 2 - arccos));
 }
 
-PolarPoint CartesianToPolar(const CartesianPoint& point)
-{
-	float r = 0.f;
-	auto n = point.dimension - 1;
-	std::vector<float> phi(n);
-
-	for (int i = 0; i <= n; ++i)
-	{
-		r += static_cast<float>(pow(point.x[i], 2));
-	}
-	r = sqrt(r);
-
-	if (n > 0)
-	{
-		for (int i = 0; i < n - 1; ++i)
-		{
-			float sumOfSquares = 0.f;
-
-			for (int j = i; j < n; ++j)
-			{
-				sumOfSquares += static_cast<float>(pow(point.x[j], 2));
-			}
-
-			phi[i] = acos(point.x[i] / sqrt(sumOfSquares));
-		}
-
-		float cos = static_cast<float>(point.x[n - 1] / sqrt(pow(point.x[n], 2) + pow(point.x[n - 1], 2)));
-		phi[n - 1] = GetAngle(Sign(point.x[n]), cos);
-	}
-
-	PolarPoint result(r, phi, point.name);
-	return result;
-}
-
 int main()
 {
 	std::cout << "Enter the number of points: ";
@@ -264,13 +245,13 @@ int main()
 
 	for (size_t i = 0; i < numberOfPoints; ++i)
 	{
-		points[i] = ScanCartesianPoint();
+		points[i] = CartesianPoint::Scan();
 	}
 
 	std::cout << std::endl << "Polar points:" << std::endl;
 	for (size_t i = 0; i < numberOfPoints; ++i)
 	{
-		PrintPoint(CartesianToPolar(points[i]));
+		
 	}
 
 	return 0;
